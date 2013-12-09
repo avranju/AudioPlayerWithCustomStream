@@ -22,9 +22,13 @@
     var KEY = 0xAB;
 
     function init() {
+        var player = document.querySelector("#player");
         var xorSource = new StreamUtils.XORMediaSource(
-            document.querySelector("#player"), "/audio/symphony-enc.mp3", KEY);
+            player, "/audio/symphony-enc.mp3", KEY);
         xorSource.initAsync().then(function () {
+            return WinJS.UI.Animation.fadeOut(document.querySelector("#loading"));
+        }).done(function () {
+            WinJS.UI.Animation.fadeIn(player);
         });
     }
 

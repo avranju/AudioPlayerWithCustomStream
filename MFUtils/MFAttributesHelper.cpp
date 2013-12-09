@@ -12,6 +12,12 @@ using namespace Microsoft::WRL;
 
 MFAttributesHelper::MFAttributesHelper()
 {
+	HR(MFStartup(MF_VERSION));
+}
+
+MFAttributesHelper::~MFAttributesHelper()
+{
+	MFShutdown();
 }
 
 IAsyncAction^ MFAttributesHelper::LoadAttributesAsync(
@@ -21,7 +27,6 @@ IAsyncAction^ MFAttributesHelper::LoadAttributesAsync(
 		// create an IMFByteStream from "stream"
 		ComPtr<IMFByteStream> pByteStream;
 		auto pUnk = winrt_cast<IUnknown>(stream);
-		auto size = stream->Size;
 		HR(MFCreateMFByteStreamOnStreamEx(pUnk.Get(), &pByteStream));
 
 		// assign mime type to the attributes on this byte stream

@@ -18,7 +18,11 @@
 <body>
     <div id="container">
         <h1>Audio with custom stream source</h1>
-        <audio id="player" controls="controls"></audio>
+        <div id="loading">
+            <h2>Loading media...</h2>
+            <progress></progress>
+        </div>
+        <audio id="player" controls="controls" style="opacity: 0"></audio>
     </div>
 </body>
 </html>

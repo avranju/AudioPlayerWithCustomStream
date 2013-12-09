@@ -155,7 +155,7 @@
         },
 
         _copyStreamAsync: function (dataReader, dataWriter, transform) {
-            var BUFFER_SIZE = 1024;
+            var BUFFER_SIZE = 1024 * 1024;
             var buffer = new Uint8Array(BUFFER_SIZE);
 
             var loop = function (bytesLoaded) {

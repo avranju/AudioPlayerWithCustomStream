@@ -11,6 +11,7 @@ namespace MFUtils
     {
     public:
 		MFAttributesHelper();
+		virtual ~MFAttributesHelper();
 
 		property UINT64 Duration;
 		property UINT32 BitRate;
