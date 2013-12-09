@@ -9,6 +9,11 @@ Project("{262852C6-CD72-467D-83FE-5EEB1973A190}") = "MediaPlayerWithCustomStream
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MFUtils", "MFUtils\MFUtils.vcxproj", "{FE096EBD-D12E-45A4-B12D-1B9691241434}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0C0E97AD-9669-4BA2-88C5-C87A22BA06AA}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
