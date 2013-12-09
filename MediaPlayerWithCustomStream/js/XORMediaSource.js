@@ -4,6 +4,7 @@
     // MP3 Framesize and length for Layer II and Layer III
     var SAMPLE_SIZE = 1152;
     var SAMPLE_DURATION_MS = 70;
+    var NANO_SECONDS_PER_MS = 1000000;
 
     // namespace aliases
     var Storage = Windows.Storage;
@@ -75,7 +76,9 @@
                 var mss = new MediaCore.MediaStreamSource(audioDescriptor);
                 mss.canSeek = true;
                 mss.musicProperties.title = self.title;
-                mss.duration = (helper.duration / 10000) >> 0;
+                // helper.duration is provided in 100 nanosecond units; MSS.duration
+                // expects this to be specified in milliseconds, so we convert
+                mss.duration = (helper.duration / (NANO_SECONDS_PER_MS / 100)) >> 0;
 
                 self.mss = mss;
 
