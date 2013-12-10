@@ -90,8 +90,8 @@ IAsyncAction^ MFAttributesHelper::LoadAttributesAsync(
 }
 
 task<ComPtr<IMFMediaSource>> MFAttributesHelper::CreateMediaSource(
-	ComPtr<IMFSourceResolver> pResolver,
-	ComPtr<IMFByteStream> pStream)
+	ComPtr<IMFSourceResolver> const& pResolver,
+	ComPtr<IMFByteStream> const& pStream)
 {
 	return create_task([pResolver, pStream]() {
 		// this task completion event is used to synchronize MF callback
@@ -99,7 +99,7 @@ task<ComPtr<IMFMediaSource>> MFAttributesHelper::CreateMediaSource(
 		task_completion_event<ComPtr<IMFMediaSource>> tce;
 
 		// create an async callback instance
-		ComPtr<IMFAsyncCallback> pCallback = new MFAsyncCallback(
+		ComPtr<IMFAsyncCallback> pCallback = Make<MFAsyncCallback>(
 			[pResolver, tce](IMFAsyncResult* pAsyncResult) -> HRESULT {
 				ComPtr<IMFMediaSource> pSource;
 				ComPtr<IUnknown> pUnk;

@@ -22,7 +22,7 @@ namespace MFUtils
 
 	private:
 		task<ComPtr<IMFMediaSource>> CreateMediaSource(
-			ComPtr<IMFSourceResolver> pResolver,
-			ComPtr<IMFByteStream> pStream);
+			ComPtr<IMFSourceResolver> const& pResolver,
+			ComPtr<IMFByteStream>  const& pStream);
     };
 }

@@ -5,6 +5,6 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <DebuggerType>Script</DebuggerType>
+    <DebuggerType>NativeOnly</DebuggerType>
   </PropertyGroup>
 </Project>
