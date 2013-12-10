@@ -12,3 +12,10 @@
 /MediaPlayerWithCustomStream/bld/x86/Debug
 /MFUtils/Debug
 /xor-encrypt/bin/Debug
+/MediaPlayerWithCustomStream/bin
+/MediaPlayerWithCustomStream/bld
+/MFUtils/Release
+/MFUtils/x64/Debug
+/Release/MFUtils
+/x64/Debug/MFUtils
+/xor-encrypt/obj/Release
