@@ -99,7 +99,7 @@ task<ComPtr<IMFMediaSource>> MFAttributesHelper::CreateMediaSource(
 		task_completion_event<ComPtr<IMFMediaSource>> tce;
 
 		// create an async callback instance
-		ComPtr<IMFAsyncCallback> pCallback = Make<MFAsyncCallback>(
+		ComPtr<IMFAsyncCallback> pCallback = MakeMFAsyncCallback(
 			[pResolver, tce](IMFAsyncResult* pAsyncResult) -> HRESULT {
 				ComPtr<IMFMediaSource> pSource;
 				ComPtr<IUnknown> pUnk;

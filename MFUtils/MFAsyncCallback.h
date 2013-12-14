@@ -6,20 +6,19 @@
 #include <wrl.h>
 #include <functional>
 
-class MFAsyncCallback : public RuntimeClass<RuntimeClassFlags<ClassicCom>, IMFAsyncCallback>
+template<typename TCallback>
+class MFAsyncCallback WrlSealed : public RuntimeClass<RuntimeClassFlags<ClassicCom>, IMFAsyncCallback>
 {
 private:
-	std::function<HRESULT(IMFAsyncResult *)> m_callback;
+	TCallback m_callback;
 	ComPtr<IMFAttributes> m_attributes;
 
 public:
 	MFAsyncCallback(
-		std::function<HRESULT(IMFAsyncResult *)> const& callback) :
+		TCallback callback) :
 			m_callback(callback)
 	{
 	}
-
-	virtual ~MFAsyncCallback() {}
 
 #pragma region IMFAsyncCallback implementation
 
@@ -37,3 +36,8 @@ public:
 #pragma endregion
 };
 
+template<typename TCallback>
+ComPtr<MFAsyncCallback<TCallback>> MakeMFAsyncCallback(TCallback cb)
+{
+	return Make<MFAsyncCallback<TCallback>>(cb);
+}
