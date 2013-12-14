@@ -35,9 +35,3 @@ public:
 
 #pragma endregion
 };
-
-template<typename TCallback>
-ComPtr<MFAsyncCallback<TCallback>> MakeMFAsyncCallback(TCallback cb)
-{
-	return Make<MFAsyncCallback<TCallback>>(cb);
-}

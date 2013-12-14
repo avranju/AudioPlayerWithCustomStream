@@ -98,26 +98,26 @@ task<ComPtr<IMFMediaSource>> MFAttributesHelper::CreateMediaSource(
 		// with PPL tasks
 		task_completion_event<ComPtr<IMFMediaSource>> tce;
 
-		// create an async callback instance
-		ComPtr<IMFAsyncCallback> pCallback = MakeMFAsyncCallback(
-			[pResolver, tce](IMFAsyncResult* pAsyncResult) -> HRESULT {
-				ComPtr<IMFMediaSource> pSource;
-				ComPtr<IUnknown> pUnk;
+		auto callback = [pResolver, tce](IMFAsyncResult* pAsyncResult) -> HRESULT {
+			ComPtr<IMFMediaSource> pSource;
+			ComPtr<IUnknown> pUnk;
 
-				// invoke EndCreateObjectFromByteStream to get the
-				// media source object
-				MF_OBJECT_TYPE type;
-				HR(pResolver->EndCreateObjectFromByteStream(
-					pAsyncResult, &type, &pUnk
+			// invoke EndCreateObjectFromByteStream to get the
+			// media source object
+			MF_OBJECT_TYPE type;
+			HR(pResolver->EndCreateObjectFromByteStream(
+				pAsyncResult, &type, &pUnk
 				));
 
-				// cast to IMFMediaSource and complete the tce
-				HR(pUnk.As(&pSource));
-				tce.set(pSource);
+			// cast to IMFMediaSource and complete the tce
+			HR(pUnk.As(&pSource));
+			tce.set(pSource);
 
-				return S_OK;
-			}
-		);
+			return S_OK;
+		};
+
+		// create an async callback instance
+		auto pCallback = Make<MFAsyncCallback<decltype(callback)>>(callback);
 
 		// start the object creation process
 		HR(pResolver->BeginCreateObjectFromByteStream(
