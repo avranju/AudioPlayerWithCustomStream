@@ -1,5 +1,4 @@
-﻿// Class1.cpp
-#include "pch.h"
+﻿#include "pch.h"
 #include "utils.h"
 #include "MFAttributesHelper.h"
 #include "MFAsyncCallback.h"
@@ -107,7 +106,7 @@ task<ComPtr<IMFMediaSource>> MFAttributesHelper::CreateMediaSource(
 			MF_OBJECT_TYPE type;
 			HR(pResolver->EndCreateObjectFromByteStream(
 				pAsyncResult, &type, &pUnk
-				));
+			));
 
 			// cast to IMFMediaSource and complete the tce
 			HR(pUnk.As(&pSource));

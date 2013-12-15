@@ -14,9 +14,7 @@ private:
 	ComPtr<IMFAttributes> m_attributes;
 
 public:
-	MFAsyncCallback(
-		TCallback callback) :
-			m_callback(callback)
+	MFAsyncCallback(TCallback const& callback) : m_callback(callback)
 	{
 	}
 
