@@ -79,15 +79,14 @@
 
                 self.mss = mss;
 
-                mss.addEventListener("starting", function (e) {
-                    self._playbackStarting(e);
-                }, false);
-                mss.addEventListener("samplerequested", function (e) {
-                    self._sampleRequested(e);
-                }, false);
-                mss.addEventListener("closed", function (e) {
-                    self._playbackClosed(e);
-                }, false);
+                self._playbackStartingHandler = self._playbackStarting.bind(self);
+                mss.addEventListener("starting", self._playbackStartingHandler, false);
+
+                self._sampleRequestedHandler = self._sampleRequested.bind(self);
+                mss.addEventListener("samplerequested", self._sampleRequestedHandler, false);
+
+                self._playbackClosedHandler = self._playbackClosed.bind(self);
+                mss.addEventListener("closed", self._playbackClosedHandler, false);
 
                 self.mediaPlayer.src = URL.createObjectURL(mss, { oneTimeOnly: true });
                 self.mediaPlayer.play();
@@ -137,12 +136,10 @@
             this.memoryStream.close();
             this.memoryStream = null;
 
-            // TODO: Fix this.
             // remove the MediaStreamSource event handlers
-
-            //e.target.removeEventListener("samplerequested", sampleRequestedHandler, false);
-            //e.target.removeEventListener("starting", startingHandler, false);
-            //e.target.removeEventListener("closed", closedHandler, false);
+            e.target.removeEventListener("samplerequested", self._sampleRequestedHandler, false);
+            e.target.removeEventListener("starting", self._playbackStartingHandler, false);
+            e.target.removeEventListener("closed", self._playbackClosedHandler, false);
 
             if (e.target === this.mss) {
                 this.mss = null;
