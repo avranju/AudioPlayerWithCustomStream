@@ -1,20 +1,16 @@
 #pragma once
-
-#include <ppltasks.h>
 #include <mfidl.h>
 #include <mfapi.h>
 #include <wrl.h>
-#include <functional>
 
 template<typename TCallback>
-class MFAsyncCallback WrlSealed : public RuntimeClass<RuntimeClassFlags<ClassicCom>, IMFAsyncCallback>
+class MFAsyncCallback WrlSealed : public Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>, IMFAsyncCallback, Microsoft::WRL::FtmBase>
 {
 private:
 	TCallback m_callback;
-	ComPtr<IMFAttributes> m_attributes;
 
 public:
-	MFAsyncCallback(TCallback const& callback) : m_callback(callback)
+	MFAsyncCallback(TCallback const &callback) : m_callback(callback)
 	{
 	}
 
@@ -33,3 +29,10 @@ public:
 
 #pragma endregion
 };
+
+template <typename TCallback>
+HRESULT MakeAndInitializeMFAsyncCallback(IMFAsyncCallback **result, TCallback const &callback)
+{
+	auto obj = Make<MFAsyncCallback<TCallback>>(callback);
+	return obj ? obj.CopyTo(result) : E_OUTOFMEMORY;
+}

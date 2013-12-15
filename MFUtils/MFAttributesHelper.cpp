@@ -1,131 +1,142 @@
 ﻿#include "pch.h"
-#include "utils.h"
-#include "MFAttributesHelper.h"
 #include "MFAsyncCallback.h"
 
-using namespace MFUtils;
 using namespace Platform;
 using namespace Windows::Foundation;
 using namespace Windows::Storage::Streams;
 using namespace Microsoft::WRL;
+using namespace concurrency;
 
-MFAttributesHelper::MFAttributesHelper()
+// Use these carefully. Only throw in exception based code (C++/CX)
+// never throw in HRESULT error code based code.
+
+#define THROW_IF_FAILED(hr)     { if (FAILED(hr)) throw Platform::Exception::CreateException(hr); }
+#define RETURN_IF_FAILED(hr)    { if (FAILED(hr)) return hr; }
+
+namespace MFUtils
 {
-	HR(MFStartup(MF_VERSION));
-}
 
-MFAttributesHelper::~MFAttributesHelper()
-{
-	MFShutdown();
-}
+	// This WinRT object provides JavaScript code access to the information in the stream
+	// that it needs to construct the AudioEncodingProperties needed to construct the AudioStreamDescriptor
+	// needed to create a MediaStreamSource. Here is how to create it
+	//      var helper = new MFUtils.MFAttributesHelper();
 
-IAsyncAction^ MFAttributesHelper::LoadAttributesAsync(
-	IRandomAccessStream^ stream, String^ mimeType)
-{
-	return create_async([this, stream, mimeType]() {
-		// create an IMFByteStream from "stream"
-		ComPtr<IMFByteStream> pByteStream;
-		auto pUnk = winrt_cast<IUnknown>(stream);
-		HR(MFCreateMFByteStreamOnStreamEx(pUnk.Get(), &pByteStream));
+	public ref class MFAttributesHelper sealed
+	{
+	public:
+		MFAttributesHelper()
+		{
+			THROW_IF_FAILED(MFStartup(MF_VERSION));
+		}
+		virtual ~MFAttributesHelper()
+		{
+			MFShutdown();
+		}
 
-		// assign mime type to the attributes on this byte stream
-		ComPtr<IMFAttributes> pAttributes;
-		HR(pByteStream.As(&pAttributes));
-		HR(pAttributes->SetString(MF_BYTESTREAM_CONTENT_TYPE, mimeType->Data()));
+		property UINT64 Duration;
+		property UINT32 BitRate;
+		property UINT32 SampleRate;
+		property UINT32 ChannelCount;
 
-		// create an IMFSourceResolver
-		ComPtr<IMFSourceResolver> pResolver;
-		HR(MFCreateSourceResolver(&pResolver));
+		IAsyncAction^ LoadAttributesAsync(IRandomAccessStream^ stream, String^ mimeType)
+		{
+			return create_async([this, stream, mimeType]()
+			{
+				// create an IMFByteStream from "stream"
+				ComPtr<IMFByteStream> byteStream;
+				THROW_IF_FAILED(MFCreateMFByteStreamOnStreamEx(reinterpret_cast<IUnknown*>(stream), &byteStream));
 
-		// create an IMFMediaSource asynchronously
-		return CreateMediaSource(pResolver, pByteStream).then([this](ComPtr<IMFMediaSource> pSource) {
-			// get a presentation descriptor
-			ComPtr<IMFPresentationDescriptor> pDescriptor;
-			HR(pSource->CreatePresentationDescriptor(&pDescriptor));
+				// assign mime type to the attributes on this byte stream
+				ComPtr<IMFAttributes> attributes;
+				THROW_IF_FAILED(byteStream.As(&attributes));
+				THROW_IF_FAILED(attributes->SetString(MF_BYTESTREAM_CONTENT_TYPE, mimeType->Data()));
 
-			// if descriptor count is not greater than zero we bail
-			DWORD descriptorCount;
-			HR(pDescriptor->GetStreamDescriptorCount(&descriptorCount));
-			if (descriptorCount == 0) {
-				throw Exception::CreateException(E_UNEXPECTED);
-			}
+				// create an IMFMediaSource asynchronously
+				return create_task([byteStream]()
+				{
+					// create an IMFSourceResolver
+					ComPtr<IMFSourceResolver> sourceResolver;
+					THROW_IF_FAILED(MFCreateSourceResolver(&sourceResolver));
 
-			// get first stream descriptor
-			BOOL selected;
-			ComPtr<IMFStreamDescriptor> pStreamDesc;
-			HR(pDescriptor->GetStreamDescriptorByIndex(0, &selected, &pStreamDesc));
+					// this task completion event is used to synchronize MF callback
+					// with PPL tasks
+					task_completion_event<ComPtr<IMFMediaSource>> completionEvent;
 
-			// get a media type handler from the stream descriptor
-			ComPtr<IMFMediaTypeHandler> pMediaTypeHandler;
-			HR(pStreamDesc->GetMediaTypeHandler(&pMediaTypeHandler));
+					ComPtr<IMFAsyncCallback> callback;
+					THROW_IF_FAILED(MakeAndInitializeMFAsyncCallback(&callback, [sourceResolver, completionEvent](IMFAsyncResult* pAsyncResult) -> HRESULT
+					{
+						// Get the media source object.
+						MF_OBJECT_TYPE type;
+						ComPtr<IUnknown> mediaSourceUnk;
+						RETURN_IF_FAILED(sourceResolver->EndCreateObjectFromByteStream(pAsyncResult, &type, &mediaSourceUnk));
 
-			// if media type count is not greater than zero we bail
-			DWORD mediaTypeCount;
-			HR(pMediaTypeHandler->GetMediaTypeCount(&mediaTypeCount));
-			if (mediaTypeCount == 0) {
-				throw Exception::CreateException(E_UNEXPECTED);
-			}
+						// Get the source in ComPtr<IMFMediaSource> form and complete the event.
+						ComPtr<IMFMediaSource> mediSource;
+						RETURN_IF_FAILED(mediaSourceUnk.As(&mediSource));
+						completionEvent.set(mediSource);
 
-			// get current media type
-			ComPtr<IMFMediaType> pMediaType;
-			HR(pMediaTypeHandler->GetCurrentMediaType(&pMediaType));
+						return S_OK;
+					}));
 
-			// get all the data we're looking for
-			UINT64 duration;
-			HR(pDescriptor->GetUINT64(MF_PD_DURATION, &duration));
-			Duration = duration;
+					// start the object creation process
+					THROW_IF_FAILED(sourceResolver->BeginCreateObjectFromByteStream(
+						byteStream.Get(), nullptr, MF_RESOLUTION_MEDIASOURCE,
+						nullptr, nullptr, callback.Get(), nullptr));
 
-			UINT32 data;
-			HR(pDescriptor->GetUINT32(MF_PD_AUDIO_ENCODING_BITRATE, &data));
-			BitRate = data;
+					// wait for the completionEvent to complete and yield its result
+					task<ComPtr<IMFMediaSource>> eventTask(completionEvent);
+					return eventTask;
+				}).then([this](ComPtr<IMFMediaSource> mediaSource)
+				{
+					// get a presentation descriptor
+					ComPtr<IMFPresentationDescriptor> presentationDesc;
+					THROW_IF_FAILED(mediaSource->CreatePresentationDescriptor(&presentationDesc));
 
-			HR(pMediaType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &data));
-			SampleRate = data;
+					// if descriptor count is not greater than zero we bail
+					DWORD descriptorCount;
+					THROW_IF_FAILED(presentationDesc->GetStreamDescriptorCount(&descriptorCount));
+					if (descriptorCount == 0)
+					{
+						throw Exception::CreateException(E_UNEXPECTED);
+					}
 
-			HR(pMediaType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &data));
-			ChannelCount = data;
-		});
-	});
-}
+					// get first stream descriptor
+					BOOL selected;
+					ComPtr<IMFStreamDescriptor> streamDesc;
+					THROW_IF_FAILED(presentationDesc->GetStreamDescriptorByIndex(0, &selected, &streamDesc));
 
-task<ComPtr<IMFMediaSource>> MFAttributesHelper::CreateMediaSource(
-	ComPtr<IMFSourceResolver> const& pResolver,
-	ComPtr<IMFByteStream> const& pStream)
-{
-	return create_task([pResolver, pStream]() {
-		// this task completion event is used to synchronize MF callback
-		// with PPL tasks
-		task_completion_event<ComPtr<IMFMediaSource>> tce;
+					// get a media type handler from the stream descriptor
+					ComPtr<IMFMediaTypeHandler> pMediaTypeHandler;
+					THROW_IF_FAILED(streamDesc->GetMediaTypeHandler(&pMediaTypeHandler));
 
-		auto callback = [pResolver, tce](IMFAsyncResult* pAsyncResult) -> HRESULT {
-			ComPtr<IMFMediaSource> pSource;
-			ComPtr<IUnknown> pUnk;
+					// if media type count is not greater than zero we bail
+					DWORD mediaTypeCount;
+					THROW_IF_FAILED(pMediaTypeHandler->GetMediaTypeCount(&mediaTypeCount));
+					if (mediaTypeCount == 0)
+					{
+						throw Exception::CreateException(E_UNEXPECTED);
+					}
 
-			// invoke EndCreateObjectFromByteStream to get the
-			// media source object
-			MF_OBJECT_TYPE type;
-			HR(pResolver->EndCreateObjectFromByteStream(
-				pAsyncResult, &type, &pUnk
-			));
+					// get current media type
+					ComPtr<IMFMediaType> mediaType;
+					THROW_IF_FAILED(pMediaTypeHandler->GetCurrentMediaType(&mediaType));
 
-			// cast to IMFMediaSource and complete the tce
-			HR(pUnk.As(&pSource));
-			tce.set(pSource);
+					// get all the data we're looking for
+					UINT64 duration;
+					THROW_IF_FAILED(presentationDesc->GetUINT64(MF_PD_DURATION, &duration));
+					Duration = duration;
 
-			return S_OK;
-		};
+					UINT32 data;
+					THROW_IF_FAILED(presentationDesc->GetUINT32(MF_PD_AUDIO_ENCODING_BITRATE, &data));
+					BitRate = data;
 
-		// create an async callback instance
-		auto pCallback = Make<MFAsyncCallback<decltype(callback)>>(callback);
+					THROW_IF_FAILED(mediaType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &data));
+					SampleRate = data;
 
-		// start the object creation process
-		HR(pResolver->BeginCreateObjectFromByteStream(
-			pStream.Get(), nullptr, MF_RESOLUTION_MEDIASOURCE,
-			nullptr, nullptr, pCallback.Get(), nullptr
-		));
-
-		// wait for the tce to comlete and yield its result
-		task<ComPtr<IMFMediaSource>> event_set(tce);
-		return event_set;
-	});
+					THROW_IF_FAILED(mediaType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &data));
+					ChannelCount = data;
+				});
+			});
+		}
+	};
 }

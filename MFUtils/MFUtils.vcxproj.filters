@@ -12,8 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="MFAttributesHelper.h" />
-    <ClInclude Include="utils.h" />
     <ClInclude Include="MFAsyncCallback.h" />
   </ItemGroup>
 </Project>
