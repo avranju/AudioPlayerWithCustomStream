@@ -38,42 +38,39 @@ namespace MFUtils
 		property UINT32 SampleRate;
 		property UINT32 ChannelCount;
 
-		IAsyncAction^ LoadAttributesAsync(IRandomAccessStream^ stream, String^ mimeType)
+		void LoadAttributes(IRandomAccessStream^ stream, String^ mimeType)
 		{
-			return create_async([this, stream, mimeType]()
-			{
-				// create an IMFByteStream from "stream"
-				ComPtr<IMFByteStream> byteStream;
-				THROW_IF_FAILED(MFCreateMFByteStreamOnStreamEx(reinterpret_cast<IUnknown*>(stream), &byteStream));
+			// create an IMFByteStream from "stream"
+			ComPtr<IMFByteStream> byteStream;
+			THROW_IF_FAILED(MFCreateMFByteStreamOnStreamEx(reinterpret_cast<IUnknown*>(stream), &byteStream));
 
-				// assign mime type to the attributes on this byte stream
-				ComPtr<IMFAttributes> attributes;
-				THROW_IF_FAILED(byteStream.As(&attributes));
-				THROW_IF_FAILED(attributes->SetString(MF_BYTESTREAM_CONTENT_TYPE, mimeType->Data()));
+			// assign mime type to the attributes on this byte stream
+			ComPtr<IMFAttributes> attributes;
+			THROW_IF_FAILED(byteStream.As(&attributes));
+			THROW_IF_FAILED(attributes->SetString(MF_BYTESTREAM_CONTENT_TYPE, mimeType->Data()));
 
-				// create a source reader from the byte stream
-				ComPtr<IMFSourceReader> sourceReader;
-				THROW_IF_FAILED(MFCreateSourceReaderFromByteStream(byteStream.Get(), nullptr, &sourceReader));
+			// create a source reader from the byte stream
+			ComPtr<IMFSourceReader> sourceReader;
+			THROW_IF_FAILED(MFCreateSourceReaderFromByteStream(byteStream.Get(), nullptr, &sourceReader));
 
-				// get current media type
-				ComPtr<IMFMediaType> mediaType;
-				THROW_IF_FAILED(sourceReader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_AUDIO_STREAM, &mediaType));
+			// get current media type
+			ComPtr<IMFMediaType> mediaType;
+			THROW_IF_FAILED(sourceReader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_AUDIO_STREAM, &mediaType));
 
-				// get all the data we're looking for
-				PROPVARIANT prop;
-				THROW_IF_FAILED(sourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &prop));
-				Duration = prop.uhVal.QuadPart;
+			// get all the data we're looking for
+			PROPVARIANT prop;
+			THROW_IF_FAILED(sourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &prop));
+			Duration = prop.uhVal.QuadPart;
 
-				UINT32 data;
-				THROW_IF_FAILED(sourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_AUDIO_ENCODING_BITRATE, &prop));
-				BitRate = prop.ulVal;
+			UINT32 data;
+			THROW_IF_FAILED(sourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_AUDIO_ENCODING_BITRATE, &prop));
+			BitRate = prop.ulVal;
 
-				THROW_IF_FAILED(mediaType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &data));
-				SampleRate = data;
+			THROW_IF_FAILED(mediaType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &data));
+			SampleRate = data;
 
-				THROW_IF_FAILED(mediaType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &data));
-				ChannelCount = data;
-			});
+			THROW_IF_FAILED(mediaType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &data));
+			ChannelCount = data;
 		}
 	};
 }

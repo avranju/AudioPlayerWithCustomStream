@@ -56,14 +56,10 @@
 
                 // get the metadata we need
                 var helper = new MFUtils.MFAttributesHelper();
-                return Utils.returnWith(helper.loadAttributesAsync(self.memoryStream, data.mimeType), {
-                    helper: helper
-                });
-            }).then(function (data) {
+                helper.loadAttributes(self.memoryStream, data.mimeType);
+
                 // save the props
-                var helper = data.helper;
                 self.sampleRate = helper.sampleRate;
-                //self.sampleDuration = Math.floor(self.sampleRate / 1000);
                 self.bitRate = helper.bitRate;
                 // helper.duration is provided in 100 nanosecond units; MSS.duration
                 // expects this to be specified in milliseconds, so we convert
