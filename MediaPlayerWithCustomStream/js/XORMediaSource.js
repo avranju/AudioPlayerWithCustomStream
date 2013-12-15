@@ -3,7 +3,7 @@
 
     // MP3 Framesize and length for Layer II and Layer III
     var SAMPLE_SIZE = 1152;
-    var SAMPLE_DURATION_MS = 70;
+    var SAMPLE_DURATION_MS = 48;
     var NANO_SECONDS_PER_MS = 1000000;
 
     // namespace aliases
@@ -63,8 +63,11 @@
                 // save the props
                 var helper = data.helper;
                 self.sampleRate = helper.sampleRate;
+                //self.sampleDuration = Math.floor(self.sampleRate / 1000);
                 self.bitRate = helper.bitRate;
-                self.duration = helper.duration;
+                // helper.duration is provided in 100 nanosecond units; MSS.duration
+                // expects this to be specified in milliseconds, so we convert
+                self.duration = (helper.duration / (NANO_SECONDS_PER_MS / 100)) >> 0;
                 self.channelCount = helper.channelCount;
 
                 var audioProps = MediaProperties.AudioEncodingProperties.createMp3(
@@ -76,9 +79,7 @@
                 var mss = new MediaCore.MediaStreamSource(audioDescriptor);
                 mss.canSeek = true;
                 mss.musicProperties.title = self.title;
-                // helper.duration is provided in 100 nanosecond units; MSS.duration
-                // expects this to be specified in milliseconds, so we convert
-                mss.duration = (helper.duration / (NANO_SECONDS_PER_MS / 100)) >> 0;
+                mss.duration = self.duration;
 
                 self.mss = mss;
 
@@ -135,11 +136,12 @@
             }
         },
 
-        _playbackClosed: function () {
+        _playbackClosed: function (e) {
             // close the MediaStreamSource
             this.memoryStream.close();
             this.memoryStream = null;
 
+            // TODO: Fix this.
             // remove the MediaStreamSource event handlers
 
             //e.target.removeEventListener("samplerequested", sampleRequestedHandler, false);
