@@ -23,8 +23,13 @@ namespace MFUtils
 
 	public ref class MFAttributesHelper sealed
 	{
+	private:
+		InMemoryRandomAccessStream^ m_stream;
+		String^ m_mimeType;
+
 	public:
-		MFAttributesHelper()
+		MFAttributesHelper(InMemoryRandomAccessStream^ stream, String^ mimeType) :
+			m_stream(stream), m_mimeType(m_mimeType)
 		{
 			THROW_IF_FAILED(MFStartup(MF_VERSION));
 		}
@@ -38,16 +43,16 @@ namespace MFUtils
 		property UINT32 SampleRate;
 		property UINT32 ChannelCount;
 
-		void LoadAttributes(IRandomAccessStream^ stream, String^ mimeType)
+		void LoadAttributes()
 		{
 			// create an IMFByteStream from "stream"
 			ComPtr<IMFByteStream> byteStream;
-			THROW_IF_FAILED(MFCreateMFByteStreamOnStreamEx(reinterpret_cast<IUnknown*>(stream), &byteStream));
+			THROW_IF_FAILED(MFCreateMFByteStreamOnStreamEx(reinterpret_cast<IUnknown*>(m_stream), &byteStream));
 
 			// assign mime type to the attributes on this byte stream
 			ComPtr<IMFAttributes> attributes;
 			THROW_IF_FAILED(byteStream.As(&attributes));
-			THROW_IF_FAILED(attributes->SetString(MF_BYTESTREAM_CONTENT_TYPE, mimeType->Data()));
+			THROW_IF_FAILED(attributes->SetString(MF_BYTESTREAM_CONTENT_TYPE, m_mimeType->Data()));
 
 			// create a source reader from the byte stream
 			ComPtr<IMFSourceReader> sourceReader;
