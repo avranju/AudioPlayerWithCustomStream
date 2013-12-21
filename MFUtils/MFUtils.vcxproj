@@ -207,7 +207,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="MFAsyncCallback.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
