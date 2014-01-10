@@ -55,7 +55,7 @@
                 self.memoryStream.seek(0);
 
                 // get the metadata we need
-                var helper = MFUtils.MFAttributesHelper.create(self.memoryStream, data.mimeType);
+                var helper = new MFUtils.MFAttributesHelper(self.memoryStream, data.mimeType);
 
                 // save the props
                 self.sampleRate = helper.sampleRate;

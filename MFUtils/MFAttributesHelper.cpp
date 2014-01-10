@@ -8,26 +8,20 @@ using namespace Microsoft::WRL;
 
 namespace MFUtils
 {
-    // This WinRT object provides JavaScript code access to the information in the stream
+    // This WinRT object provides JavaScript or C# code access to the information in the stream
     // that it needs to construct the AudioEncodingProperties needed to construct the AudioStreamDescriptor
     // needed to create a MediaStreamSource. Here is how to create it
-    // var helper = MFUtils.MFAttributesHelper.create(self.memoryStream, data.mimeType);
+    // var helper = new MFUtils.MFAttributesHelper(self.memoryStream, data.mimeType);
 
     public ref class MFAttributesHelper sealed
     {
     public:
-        // The synchronous design only works with in memory streams.
-        static MFAttributesHelper^ Create(InMemoryRandomAccessStream^ stream, String^ mimeType)
-        {
-            return ref new MFAttributesHelper(stream, mimeType);
-        }
-
         property UINT64 Duration;
         property UINT32 BitRate;
         property UINT32 SampleRate;
         property UINT32 ChannelCount;
 
-    private:
+        // The synchronous design only works with in memory streams.
         MFAttributesHelper(InMemoryRandomAccessStream^ stream, String^ mimeType)
         {
             THROW_IF_FAILED(MFStartup(MF_VERSION));
@@ -64,6 +58,7 @@ namespace MFUtils
             ChannelCount = data;
         }
 
+    private:
         ~MFAttributesHelper()
         {
             MFShutdown();
